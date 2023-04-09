@@ -1,6 +1,7 @@
 use iced::{Element, Settings, Sandbox};
 use iced::widget::{Container, column, row, Slider, Text, TextInput};
-//use iced::Length::FillPortion;
+use iced::Length::FillPortion;
+use iced::alignment::Horizontal;
 
 use eval::{Value, Expr, to_value};
 
@@ -31,13 +32,13 @@ impl Sandbox for FCalc {
         FCalc {
             expr: String::from(""),
             arg: 0.0,
-            arg_str: String::from(""),
+            arg_str: String::from("0"),
             res: String::from(""),
         }
     }
 
     fn title(&self) -> String {
-        String::from("this is ass")
+        String::from("FCalc")
     }
 
     fn update(&mut self, msg: Message) {
@@ -50,29 +51,29 @@ impl Sandbox for FCalc {
 
     fn view(&self) -> Element<Message> {
         let slider_arg = Slider::new(-100.0..=100.0, self.arg, Message::ArgChange);
-        let arg_out = Text::new(&*self.arg_str.as_str());
-        let result_out = Text::new(&self.res);
-        let expr_in = TextInput::new("Enter function", &self.expr, Message::ExprChange);
+        let arg_out = Text::new(format!("x = {}", &*self.arg_str.as_str())).width(FillPortion(1)).horizontal_alignment(Horizontal::Center);
+        let result_out = Text::new(&self.res).horizontal_alignment(Horizontal::Center);
+        let expr_in = TextInput::new("Enter function", &self.expr, Message::ExprChange).width(FillPortion(5));
         Container::new(
-            column![result_out, slider_arg, row![expr_in, arg_out]]
+            column![result_out, slider_arg, row![expr_in, arg_out]].padding(10).spacing(10)
         ).center_x().center_y().into()
     }
 }
 
 impl FCalc {
-    fn extract_value(n: Vec<Value>) -> f64 {
+    fn extract_float(n: Vec<Value>) -> f64 {
         to_value(n.get(0).unwrap()).as_f64().unwrap()
     }
 
     fn calculate(&mut self) {
         let processed_expr = Expr::new(&self.expr)
-            .function("sin", |n| Ok(to_value(FCalc::extract_value(n).sin())))
-            .function("cos", |n| Ok(to_value(FCalc::extract_value(n).cos())))
-            .function("tan", |n| Ok(to_value(FCalc::extract_value(n).tan())))
+            .function("sin", |n| Ok(to_value(FCalc::extract_float(n).sin())))
+            .function("cos", |n| Ok(to_value(FCalc::extract_float(n).cos())))
+            .function("tan", |n| Ok(to_value(FCalc::extract_float(n).tan())))
             .value("x", &self.arg);
         let expr_result = processed_expr.exec();
         self.res = match expr_result {
-            Ok(res) => res.to_string(),
+            Ok(res) => format!("f(x) = {}", res.to_string()),
             Err(_) => String::from("Error during computation"),
         }
     }
