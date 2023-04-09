@@ -1,9 +1,11 @@
-use iced::{Color, Element, Length, Renderer, Settings, Sandbox};
-use iced::widget::{Container, Column, Slider, Text, TextInput};
-use iced::theme;
-use iced::alignment;
+use iced::{Element, Settings, Sandbox};
+use iced::widget::{Container, column, row, Slider, Text, TextInput};
+//use iced::Length::FillPortion;
 
-use eval::{Expr, eval, to_value};
+use eval::{Value, Expr, to_value};
+
+#[cfg(test)]
+mod tests;
 
 fn main() -> iced::Result {
     FCalc::run(Settings::default())
@@ -18,6 +20,7 @@ enum Message {
 struct FCalc {
     expr: String,
     arg: f64,
+    arg_str: String,
     res: String,
 }
 
@@ -28,6 +31,7 @@ impl Sandbox for FCalc {
         FCalc {
             expr: String::from(""),
             arg: 0.0,
+            arg_str: String::from(""),
             res: String::from(""),
         }
     }
@@ -38,7 +42,7 @@ impl Sandbox for FCalc {
 
     fn update(&mut self, msg: Message) {
         match msg {
-            Message::ArgChange(arg) => {self.arg = arg},
+            Message::ArgChange(arg) => {self.arg = arg; self.arg_str = self.arg.to_string()},
             Message::ExprChange(f) => {self.expr = f},
         }
         self.calculate();
@@ -46,23 +50,27 @@ impl Sandbox for FCalc {
 
     fn view(&self) -> Element<Message> {
         let slider_arg = Slider::new(-100.0..=100.0, self.arg, Message::ArgChange);
+        let arg_out = Text::new(&*self.arg_str.as_str());
         let result_out = Text::new(&self.res);
         let expr_in = TextInput::new("Enter function", &self.expr, Message::ExprChange);
-        Container::new(Column::new().push(result_out).push(slider_arg).push(expr_in))
-            .center_x().center_y().into()
+        Container::new(
+            column![result_out, slider_arg, row![expr_in, arg_out]]
+        ).center_x().center_y().into()
     }
 }
 
 impl FCalc {
+    fn extract_value(n: Vec<Value>) -> f64 {
+        to_value(n.get(0).unwrap()).as_f64().unwrap()
+    }
+
     fn calculate(&mut self) {
-        //let mut processed_expr = &self.expr.replace("x", &(format!("({})", &self.arg.to_string())));
-        let processed_expr = Expr::new(&self.expr
-                                       .replace("sin(x)", "x.sin()")
-                                       .replace("cos(x)", "x.cos()")
-                                       .replace("tan(x)", "x.tan()"))
+        let processed_expr = Expr::new(&self.expr)
+            .function("sin", |n| Ok(to_value(FCalc::extract_value(n).sin())))
+            .function("cos", |n| Ok(to_value(FCalc::extract_value(n).cos())))
+            .function("tan", |n| Ok(to_value(FCalc::extract_value(n).tan())))
             .value("x", &self.arg);
         let expr_result = processed_expr.exec();
-        println!("{:?}", expr_result);
         self.res = match expr_result {
             Ok(res) => res.to_string(),
             Err(_) => String::from("Error during computation"),
@@ -70,52 +78,3 @@ impl FCalc {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn quadr() {
-        let mut fc = FCalc::new();
-        fc.expr = String::from("x * x + 4");
-        fc.arg = 6.0;
-        fc.calculate();
-        assert_eq!(fc.res, String::from("40.0"));
-    }
-
-    #[test]
-    fn quadr_2() {
-        let mut fc = FCalc::new();
-        fc.expr = String::from("x * x + 4");
-        fc.arg = -6.0;
-        fc.calculate();
-        assert_eq!(fc.res, String::from("40.0"));
-    }
-
-    #[test]
-    fn cubic() {
-        let mut fc = FCalc::new();
-        fc.expr = String::from("x * x * x + 4");
-        fc.arg = -2.0;
-        fc.calculate();
-        assert_eq!(fc.res, String::from("-4.0"));
-    }
-
-    #[test]
-    fn linear() {
-        let mut fc = FCalc::new();
-        fc.expr = String::from("x + 4");
-        fc.arg = -10.0;
-        fc.calculate();
-        assert_eq!(fc.res, String::from("-6.0"));
-    }
-
-    #[test]
-    fn trigonometry() {
-        let mut fc = FCalc::new();
-        fc.expr = String::from("cos(x) * cos(x) + sin(x) * sin(x)");
-        fc.arg = 2.11;
-        fc.calculate();
-        assert!(fc.res.parse::<f64>().unwrap() - 1.0 < 0.1);
-    }
-}
