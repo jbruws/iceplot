@@ -1,27 +1,24 @@
-use iced::widget::canvas::{self, Path, path, Canvas, Fill, Frame, Cache};
-use iced::Point;
+use iced::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+use iced::{Color, Rectangle, Theme, Point};
 
+// shamelessly stolen from iced-rs api reference lol
+#[derive(Debug)]
 pub struct Graph {
-    pub graph_points: Vec<Point>,
+    points: Vec<Point>,
 }
 
-impl Graph {
-    pub fn new() -> Graph {
-        Graph{graph_points: vec![Point::new(0.0, 0.0), Point::new(0.0, 0.0)]}
-    }
+impl Program<()> for Graph {
+    type State = ();
 
-    pub fn new_point(&mut self, x: f32, y: f32) {
-        self.graph_points.push(Point::new(x, y));
-    }
-
-    pub fn draw_graph(&self) -> Canvas<Message, Theme, P> {
-        let graph = path::Builder::new();
-        graph.move_to(*self.graph_points.get(0).unwrap());
-        for i in 1..self.graph_points.len() {
-            graph.line_to(self.graph_points.get(i).unwrap);
+    fn draw(&self, _state: &(), _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
+        let mut frame = Frame::new(bounds.size());
+        let mut paths: Vec<Path> = Vec::new();
+        let mut last_point: Point = frame.center();
+        for i in 1..self.points.len() {
+            let current_point = *self.points.get(i).unwrap();
+            paths.push(Path::line(last_point, current_point));
+            last_point = current_point;
         }
-        let graph_path = graph.build();
-        let cache: layer::Cache<Graph> = layer::Cache::new();
-        Canvas::new().push(cache.with(graph_path))
+        vec![frame.into_geometry()]
     }
 }
