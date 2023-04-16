@@ -1,5 +1,6 @@
 use iced::alignment::Horizontal;
 use iced::widget::{column, row, Container, Slider, Text, TextInput};
+use iced::widget::canvas::{self, Canvas, Program};
 use iced::Length::FillPortion;
 use iced::{Element, Sandbox, Settings, Point};
 
@@ -52,7 +53,7 @@ impl Sandbox for FCalc {
             }
             Message::ExprChange(f) => self.expr = f,
         }
-        self.calculate();
+        self.set_values();
     }
 
     fn view(&self) -> Element<Message> {
@@ -61,10 +62,11 @@ impl Sandbox for FCalc {
             .width(FillPortion(1))
             .horizontal_alignment(Horizontal::Center);
         let result_out = Text::new(&self.res_str).horizontal_alignment(Horizontal::Center);
-        let expr_in =
+        let expr_in = 
             TextInput::new("Enter function", &self.expr, Message::ExprChange).width(FillPortion(5));
+        let gr_canvas = Canvas::new(&self.create_graph());
         Container::new(
-            column![result_out, slider_arg, row![expr_in, arg_out]]
+            column![result_out, slider_arg, row![expr_in, arg_out], gr_canvas]
                 .padding(10)
                 .spacing(10),
         )
@@ -75,23 +77,39 @@ impl Sandbox for FCalc {
 }
 
 impl FCalc {
+    fn create_graph(&self) -> Graph {
+        let graph_points: Vec<Point> = Vec::new();
+        for i in -100..=100 {
+            let function_val = FCalc::calculate(self.expr, i as f64);
+            if let Ok(res) = function_val {
+                graph_points.push(Point::new(i as f32, res as f32));
+            }
+        }
+        Graph::new(graph_points)
+    }
+
+    fn set_values(&self) {
+        let current_value = FCalc::calculate(self.expr, self.arg);
+        match current_value {
+            Ok(res) => {self.res = res; self.res_str = format!("f(x) = {}", res.to_string())},
+            Err(msg) => {self.res_str = msg},
+        }
+    }
+
     fn extract_float(n: Vec<Value>) -> f64 {
         to_value(n.get(0).unwrap()).as_f64().unwrap()
     }
 
-    fn calculate(&mut self) {
-        let processed_expr = Expr::new(&self.expr)
+    fn calculate(expr: String, arg: f64) -> Result<f64, String> {
+        let processed_expr = Expr::new(expr)
             .function("sin", |n| Ok(to_value(FCalc::extract_float(n).sin())))
             .function("cos", |n| Ok(to_value(FCalc::extract_float(n).cos())))
             .function("tan", |n| Ok(to_value(FCalc::extract_float(n).tan())))
-            .value("x", &self.arg);
+            .value("x", arg);
         let expr_result = processed_expr.exec();
         match expr_result {
-            Ok(res) => {
-                self.res = res.as_f64().unwrap();
-                self.res_str = format!("f(x) = {}", res.to_string())
-            }
-            Err(_) => self.res_str = String::from("Computation error"),
+            Ok(res) => Ok(res.as_f64().unwrap()),
+            Err(_) => Err(String::from("Computation error")),
         }
     }
 }

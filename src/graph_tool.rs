@@ -22,3 +22,8 @@ impl Program<()> for Graph {
         vec![frame.into_geometry()]
     }
 }
+impl Graph {
+    pub fn new(p: Vec<Point>) -> Graph {
+        Graph{points: p}
+    }
+}
