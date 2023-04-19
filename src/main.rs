@@ -1,8 +1,10 @@
 use iced::alignment::Horizontal;
+use iced::{Command, executor, Theme};
 use iced::widget::{column, row, Container, Slider, Text, TextInput};
 use iced::widget::canvas::{self, Canvas, Program};
 use iced::Length::FillPortion;
-use iced::{Element, Sandbox, Settings, Point};
+use iced::Length;
+use iced::{Element, Application, Settings, Point};
 
 use crate::graph_tool::Graph;
 use eval::{to_value, Expr, Value};
@@ -28,24 +30,27 @@ struct FCalc {
     res_str: String,
 }
 
-impl Sandbox for FCalc {
+impl Application for FCalc {
+    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Flags = ();
 
-    fn new() -> FCalc {
-        FCalc {
+    fn new(_flags: ()) -> (Self, Command<Message>) {
+        (FCalc {
             expr: String::from(""),
             arg: 0.0,
             arg_str: String::from("0.0"),
             res: 0.0,
             res_str: String::from("0.0"),
-        }
+        }, Command::none())
     }
 
     fn title(&self) -> String {
         String::from("FCalc")
     }
 
-    fn update(&mut self, msg: Message) {
+    fn update(&mut self, msg: Message) -> Command<Message> {
         match msg {
             Message::ArgChange(arg) => {
                 self.arg = arg;
@@ -54,6 +59,7 @@ impl Sandbox for FCalc {
             Message::ExprChange(f) => self.expr = f,
         }
         self.set_values();
+        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -64,9 +70,10 @@ impl Sandbox for FCalc {
         let result_out = Text::new(&self.res_str).horizontal_alignment(Horizontal::Center);
         let expr_in = 
             TextInput::new("Enter function", &self.expr, Message::ExprChange).width(FillPortion(5));
-        let gr_canvas = Canvas::new(&self.create_graph());
+        let gr_canvas: Element<Message> = Canvas::new(&self.create_graph()).width(Length::Fill).height(Length::Fill).into();
         Container::new(
-            column![result_out, slider_arg, row![expr_in, arg_out], gr_canvas]
+            //column![result_out, slider_arg, row![expr_in, arg_out], gr_canvas]
+            column![gr_canvas]
                 .padding(10)
                 .spacing(10),
         )
