@@ -461,14 +461,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fcalc"
-version = "0.1.0"
-dependencies = [
- "eval",
- "iced",
-]
-
-[[package]]
 name = "find-crate"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -961,6 +953,14 @@ dependencies = [
  "winapi",
  "window_clipboard",
  "winit",
+]
+
+[[package]]
+name = "iceplot"
+version = "0.1.0"
+dependencies = [
+ "eval",
+ "iced",
 ]
 
 [[package]]

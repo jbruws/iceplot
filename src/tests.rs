@@ -1,6 +1,6 @@
 #[test]
 fn quadr() {
-    let mut fc = FCalc::new();
+    let mut fc = FuncHandler::new();
     fc.expr = String::from("x * x + 4");
     fc.arg = 6.0;
     fc.calculate();
@@ -9,7 +9,7 @@ fn quadr() {
 
 #[test]
 fn quadr_2() {
-    let mut fc = FCalc::new();
+    let mut fc = FuncHandler::new();
     fc.expr = String::from("x * x + 4");
     fc.arg = -6.0;
     fc.calculate();
@@ -18,7 +18,7 @@ fn quadr_2() {
 
 #[test]
 fn cubic() {
-    let mut fc = FCalc::new();
+    let mut fc = FuncHandler::new();
     fc.expr = String::from("x * x * x + 4");
     fc.arg = -2.0;
     fc.calculate();
@@ -27,7 +27,7 @@ fn cubic() {
 
 #[test]
 fn linear() {
-    let mut fc = FCalc::new();
+    let mut fc = FuncHandler::new();
     fc.expr = String::from("x + 4");
     fc.arg = -10.0;
     fc.calculate();
@@ -36,7 +36,7 @@ fn linear() {
 
 #[test]
 fn trigonometry() {
-    let mut fc = FCalc::new();
+    let mut fc = FuncHandler::new();
     fc.expr = String::from("cos(x)");
     fc.arg = 3.141;
     fc.calculate();
@@ -45,7 +45,7 @@ fn trigonometry() {
 
 //#[test]
 //fn trigonometry_2() {
-//    let mut fc = FCalc::new();
+//    let mut fc = FuncHandler::new();
 //    fc.expr = String::from("cos(x) * cos(x) + sin(x) * sin(x)");
 //    fc.arg = 2.44;
 //    fc.calculate();
