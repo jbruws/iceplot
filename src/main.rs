@@ -94,7 +94,10 @@ impl FuncHandler {
         for i in -100..=100 {
             let function_val = FuncHandler::calculate(self.expr.clone(), i as f64);
             if let Ok(res) = function_val {
-                graph_points.push(Point::new((SCALE * i) as f32, (SCALE as f64 * res) as f32 + 50.0));
+                graph_points.push(Point::new(
+                    (SCALE * i) as f32,
+                    (SCALE as f64 * res) as f32 + 50.0,
+                ));
             }
         }
         Graph::new(graph_points)
@@ -112,7 +115,10 @@ impl FuncHandler {
     }
 
     fn extract_float(n: Vec<Value>) -> f64 {
-        to_value(n.get(0).unwrap()).as_f64().unwrap() // it crashes here lol
+        match to_value(n.get(0).unwrap()).as_f64() {
+            Some(f) => f,
+            None => 0.0,
+        }
     }
 
     fn calculate(expr: String, arg: f64) -> Result<f64, String> {
