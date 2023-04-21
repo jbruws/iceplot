@@ -8,6 +8,7 @@ use iced::{Color, Point, Rectangle, Theme};
 pub struct Graph {
     points: Vec<Point>,
     scale: f32,
+    sliding_point: Point,
 }
 
 impl<Message> Program<Message> for Graph {
@@ -102,18 +103,38 @@ impl<Message> Program<Message> for Graph {
                 },
             );
         }
+        frame.fill(
+            &Path::circle(
+                Point::new(
+                    frame.center().x + self.scale * self.sliding_point.x,
+                    frame.center().y - self.scale * self.sliding_point.y,
+                ),
+                self.scale * 0.25,
+            ),
+            Color {
+                r: 1.0,
+                g: 0.0,
+                b: 1.0,
+                a: 0.75,
+            },
+        );
         vec![frame.into_geometry()]
     }
 }
 impl Graph {
-    pub fn new(p: Vec<Point>, fl: f32) -> Graph {
+    pub fn new(p: Vec<Point>, fl: f32, sliding_point: Point) -> Graph {
         Graph {
             points: p,
             scale: fl,
+            sliding_point: sliding_point,
         }
     }
 
     pub fn add_point(&mut self, p: Point) {
         self.points.push(p);
+    }
+
+    pub fn set_sliding_point(&mut self, p: Point) {
+        self.sliding_point = p;
     }
 }

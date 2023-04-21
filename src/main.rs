@@ -66,7 +66,7 @@ impl Application for FuncHandler {
     }
 
     fn view(&self) -> Element<Message> {
-        let slider_arg = Slider::new(-100.0..=100.0, self.arg, Message::ArgChange);
+        let slider_arg = Slider::new(-30.0..=30.0, self.arg, Message::ArgChange).step(0.2);
         let arg_out = Text::new(format!("x = {}", &*self.arg_str.as_str()))
             .width(FillPortion(1))
             .horizontal_alignment(Horizontal::Center);
@@ -89,14 +89,21 @@ impl Application for FuncHandler {
 
 impl FuncHandler {
     fn create_graph(&self) -> Graph {
-        let mut gr = Graph::new(Vec::new(), 30.0);
+        let scale = 30.0;
+        let precision = 0.15;
+
+        let mut gr = Graph::new(
+            Vec::new(),
+            scale,
+            Point::new(self.arg as f32, self.res as f32),
+        );
         let mut i = -50.0;
         while i < 50.0 {
             let function_val = FuncHandler::calculate(self.expr.clone(), i as f64);
             if let Ok(res) = function_val {
                 gr.add_point(Point::new(i as f32, res as f32));
             }
-            i += 0.25;
+            i += precision;
         }
         gr
     }
@@ -134,6 +141,7 @@ impl FuncHandler {
             .function("sqrt", |n| {
                 Ok(to_value(FuncHandler::extract_float(n).powf(0.5)))
             })
+            .function("abs", |n| Ok(to_value(FuncHandler::extract_float(n).abs())))
             .value("x", arg);
         let expr_result = processed_expr.exec();
         match expr_result {
