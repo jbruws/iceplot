@@ -1,5 +1,6 @@
-use iced::widget::canvas::path::Builder;
-use iced::widget::canvas::{Cursor, Frame, Geometry, Program};
+use iced::widget::canvas::{
+    Cursor, Frame, Geometry, LineCap, LineDash, LineJoin, Path, Program, Stroke, Style,
+};
 use iced::{Color, Point, Rectangle, Theme};
 
 // shamelessly stolen from iced-rs api reference lol
@@ -20,18 +21,54 @@ impl<Message> Program<Message> for Graph {
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(bounds.size());
 
-        let mut builder = Builder::new();
-        builder.move_to(Point::new(frame.center().x, frame.center().y - 200.0));
+        let points = [
+            Point::new(frame.center().x, 0.0),
+            Point::new(0.0, frame.center().y),
+            Point::new(frame.center().x, frame.height()),
+            Point::new(frame.width(), frame.center().y),
+        ];
 
-        for i in &self.points {
-            builder.line_to(*i);
+        let stroke = Stroke {
+            style: Style::Solid(Color {
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
+                a: 1.0,
+            }),
+            width: 2.0,
+            line_cap: LineCap::Round,
+            line_join: LineJoin::Bevel,
+            line_dash: LineDash::default(),
+        };
+
+        frame.stroke(&Path::line(points[0], points[2]), stroke.clone());
+        frame.stroke(&Path::line(points[1], points[3]), stroke.clone());
+
+        for i in 1..self.points.len() {
+            let prev_point = *self.points.get(i - 1).unwrap();
+            let current_point = *self.points.get(i).unwrap();
+            let current_path = Path::line(
+                Point::new(
+                    frame.center().x + prev_point.x,
+                    frame.center().y - prev_point.y,
+                ),
+                Point::new(
+                    frame.center().x + current_point.x,
+                    frame.center().y - current_point.y,
+                ),
+            );
+            frame.stroke(
+                &current_path,
+                Stroke {
+                    style: Style::Solid(Color::BLACK),
+                    width: 3.0,
+                    line_cap: LineCap::Round,
+                    line_join: LineJoin::Bevel,
+                    line_dash: LineDash::default(),
+                },
+            );
         }
-        for i in self.points.iter().rev() {
-            builder.line_to(Point::new(i.x, i.y + 5.0));
-        }
-        builder.close();
-        let final_path = builder.build();
-        frame.fill(&final_path, Color::BLACK);
+
         vec![frame.into_geometry()]
     }
 }

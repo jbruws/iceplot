@@ -90,13 +90,13 @@ impl Application for FuncHandler {
 impl FuncHandler {
     fn create_graph(&self) -> Graph {
         let mut graph_points: Vec<Point> = Vec::new();
-        const SCALE: i32 = 15;
+        const SCALE: i32 = 10;
         for i in -100..=100 {
             let function_val = FuncHandler::calculate(self.expr.clone(), i as f64);
             if let Ok(res) = function_val {
                 graph_points.push(Point::new(
                     (SCALE * i) as f32,
-                    (SCALE as f64 * res) as f32 + 50.0,
+                    (SCALE as f64 * res) as f32,
                 ));
             }
         }
@@ -116,6 +116,7 @@ impl FuncHandler {
 
     fn extract_float(n: Vec<Value>) -> f64 {
         match to_value(n.get(0).unwrap()).as_f64() {
+            // and now it crashes here????
             Some(f) => f,
             None => 0.0,
         }
