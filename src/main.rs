@@ -89,18 +89,16 @@ impl Application for FuncHandler {
 
 impl FuncHandler {
     fn create_graph(&self) -> Graph {
-        let mut graph_points: Vec<Point> = Vec::new();
-        const SCALE: i32 = 10;
-        for i in -100..=100 {
+        let mut gr = Graph::new(Vec::new(), 30.0);
+        let mut i = -50.0;
+        while i < 50.0 {
             let function_val = FuncHandler::calculate(self.expr.clone(), i as f64);
             if let Ok(res) = function_val {
-                graph_points.push(Point::new(
-                    (SCALE * i) as f32,
-                    (SCALE as f64 * res) as f32,
-                ));
+                gr.add_point(Point::new(i as f32, res as f32));
             }
+            i += 0.25;
         }
-        Graph::new(graph_points)
+        gr
     }
 
     fn set_values(&mut self) {
@@ -115,11 +113,14 @@ impl FuncHandler {
     }
 
     fn extract_float(n: Vec<Value>) -> f64 {
-        match to_value(n.get(0).unwrap()).as_f64() {
-            // and now it crashes here????
-            Some(f) => f,
+        let return_float = match n.get(0) {
+            Some(value) => match value.as_f64() {
+                Some(f) => f,
+                None => 0.0,
+            },
             None => 0.0,
-        }
+        };
+        return_float
     }
 
     fn calculate(expr: String, arg: f64) -> Result<f64, String> {
@@ -127,6 +128,12 @@ impl FuncHandler {
             .function("sin", |n| Ok(to_value(FuncHandler::extract_float(n).sin())))
             .function("cos", |n| Ok(to_value(FuncHandler::extract_float(n).cos())))
             .function("tan", |n| Ok(to_value(FuncHandler::extract_float(n).tan())))
+            .function("ctg", |n| {
+                Ok(to_value(1.0 / FuncHandler::extract_float(n).tan()))
+            })
+            .function("sqrt", |n| {
+                Ok(to_value(FuncHandler::extract_float(n).powf(0.5)))
+            })
             .value("x", arg);
         let expr_result = processed_expr.exec();
         match expr_result {

@@ -7,6 +7,7 @@ use iced::{Color, Point, Rectangle, Theme};
 #[derive(Debug)]
 pub struct Graph {
     points: Vec<Point>,
+    scale: f32,
 }
 
 impl<Message> Program<Message> for Graph {
@@ -49,12 +50,12 @@ impl<Message> Program<Message> for Graph {
             let current_point = *self.points.get(i).unwrap();
             let current_path = Path::line(
                 Point::new(
-                    frame.center().x + prev_point.x,
-                    frame.center().y - prev_point.y,
+                    frame.center().x + self.scale * prev_point.x,
+                    frame.center().y - self.scale * prev_point.y,
                 ),
                 Point::new(
-                    frame.center().x + current_point.x,
-                    frame.center().y - current_point.y,
+                    frame.center().x + self.scale * current_point.x,
+                    frame.center().y - self.scale * current_point.y,
                 ),
             );
             frame.stroke(
@@ -68,12 +69,18 @@ impl<Message> Program<Message> for Graph {
                 },
             );
         }
-
         vec![frame.into_geometry()]
     }
 }
 impl Graph {
-    pub fn new(p: Vec<Point>) -> Graph {
-        Graph { points: p }
+    pub fn new(p: Vec<Point>, fl: f32) -> Graph {
+        Graph {
+            points: p,
+            scale: fl,
+        }
+    }
+
+    pub fn add_point(&mut self, p: Point) {
+        self.points.push(p);
     }
 }
