@@ -29,7 +29,7 @@ impl<Message> Program<Message> for Graph {
             Point::new(frame.width(), frame.center().y),
         ];
 
-        let stroke = Stroke {
+        let stroke_axis = Stroke {
             style: Style::Solid(Color {
                 r: 1.0,
                 g: 0.0,
@@ -42,8 +42,41 @@ impl<Message> Program<Message> for Graph {
             line_dash: LineDash::default(),
         };
 
-        frame.stroke(&Path::line(points[0], points[2]), stroke.clone());
-        frame.stroke(&Path::line(points[1], points[3]), stroke.clone());
+        let stroke_grid = Stroke {
+            style: Style::Solid(Color {
+                r: 1.0,
+                g: 0.0,
+                b: 0.0,
+                a: 0.5,
+            }),
+            width: 1.5,
+            line_cap: LineCap::Round,
+            line_join: LineJoin::Bevel,
+            line_dash: LineDash::default(),
+        };
+
+        frame.stroke(&Path::line(points[0], points[2]), stroke_axis.clone());
+        frame.stroke(&Path::line(points[1], points[3]), stroke_axis.clone());
+
+        let grid_width = (frame.width() as f32 / self.scale) as i32;
+
+        // i should probably stop redrawing axis and grid every time it plots a graph, so TODO
+        for i in (-1) * grid_width..=grid_width {
+            frame.stroke(
+                &Path::line(
+                    Point::new(0.0, frame.center().y + i as f32 * self.scale),
+                    Point::new(frame.width(), frame.center().y + i as f32 * self.scale),
+                ),
+                stroke_grid.clone(),
+            );
+            frame.stroke(
+                &Path::line(
+                    Point::new(frame.center().x + i as f32 * self.scale, 0.0),
+                    Point::new(frame.center().x + i as f32 * self.scale, frame.height()),
+                ),
+                stroke_grid.clone(),
+            );
+        }
 
         for i in 1..self.points.len() {
             let prev_point = *self.points.get(i - 1).unwrap();
