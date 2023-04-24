@@ -5,7 +5,7 @@ use eval::{to_value, Expr, Value};
 
 pub struct ExprCalculator {
     pub expr: String,
-    pub arg: f64,
+    pub arg: f32,
 }
 
 impl ExprCalculator {
@@ -17,20 +17,20 @@ impl ExprCalculator {
     }
 
     pub fn create_graph(&self) -> GraphHandler {
-        const SCALE: f64 = 30.0;
-        const PRECISION: f64 = 0.15;
+        const SCALE: f32 = 30.0;
+        const PRECISION: f32 = 0.15;
 
         let mut initial_point = Point::new(0.0, 0.0);
         if let Ok(current_y) = ExprCalculator::calculate(&self.arg, &self.expr) {
-            initial_point = Point::new(self.arg as f32, current_y as f32);
+            initial_point = Point::new(self.arg, current_y);
         }
 
-        let mut gr = GraphHandler::new(Vec::new(), SCALE as f32, initial_point);
+        let mut gr = GraphHandler::new(Vec::new(), SCALE, initial_point);
         let mut i = -50.0;
         while i < 50.0 {
             let function_val = ExprCalculator::calculate(&i, &self.expr);
             if let Ok(res) = function_val {
-                gr.add_point(Point::new(i as f32, res as f32));
+                gr.add_point(Point::new(i, res));
             }
             i += PRECISION;
         }
@@ -45,10 +45,10 @@ impl ExprCalculator {
         }
     }
 
-    pub fn extract_float(n: Vec<Value>) -> f64 {
+    pub fn extract_float(n: Vec<Value>) -> f32 {
         let return_float = match n.get(0) {
             Some(value) => match value.as_f64() {
-                Some(f) => f,
+                Some(f) => f as f32,
                 None => 0.0,
             },
             None => 0.0,
@@ -56,7 +56,7 @@ impl ExprCalculator {
         return_float
     }
 
-    pub fn calculate(arg: &f64, expr: &String) -> Result<f64, String> {
+    pub fn calculate(arg: &f32, expr: &String) -> Result<f32, String> {
         let processed_expr = Expr::new(expr)
             .function("sin", |n| {
                 Ok(to_value(ExprCalculator::extract_float(n).sin()))
@@ -80,7 +80,7 @@ impl ExprCalculator {
         let expr_result = processed_expr.exec();
         match expr_result {
             Ok(res) => match res.as_f64() {
-                Some(f) => Ok(f),
+                Some(f) => Ok(f as f32),
                 // make actual error msgs later
                 None => Err(String::from("Incomplete function")),
             },

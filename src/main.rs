@@ -21,7 +21,7 @@ fn main() -> iced::Result {
 
 #[derive(Clone, Debug)]
 enum Message {
-    ArgChange(f64),
+    ArgChange(f32),
     ExprChange(String),
 }
 
