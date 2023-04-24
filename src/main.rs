@@ -4,16 +4,19 @@ use iced::widget::{column, row, Container, Slider, Text, TextInput};
 use iced::Length;
 use iced::Length::FillPortion;
 use iced::{executor, Command, Theme};
-use iced::{Application, Element, Point, Settings};
+use iced::{Application, Element, Settings};
 
-use crate::graph_tool::Graph;
-use eval::{to_value, Expr, Value};
+use crate::expr_calculator::ExprCalculator;
 
+mod expr_calculator;
 mod graph_tool;
 mod tests;
 
 fn main() -> iced::Result {
-    FuncHandler::run(Settings::default())
+    FuncHandler::run(Settings {
+        antialiasing: true,
+        ..Settings::default()
+    })
 }
 
 #[derive(Clone, Debug)]
@@ -23,11 +26,7 @@ enum Message {
 }
 
 struct FuncHandler {
-    expr: String,
-    arg: f64,
-    arg_str: String,
-    res: f64,
-    res_str: String,
+    ecalc: ExprCalculator,
 }
 
 impl Application for FuncHandler {
@@ -39,41 +38,33 @@ impl Application for FuncHandler {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             FuncHandler {
-                expr: String::from(""),
-                arg: 0.0,
-                arg_str: String::from("0.0"),
-                res: 0.0,
-                res_str: String::from("0.0"),
+                ecalc: ExprCalculator::new(),
             },
             Command::none(),
         )
     }
 
     fn title(&self) -> String {
-        String::from("FuncHandler")
+        String::from("IcePlot")
     }
 
     fn update(&mut self, msg: Message) -> Command<Message> {
         match msg {
-            Message::ArgChange(arg) => {
-                self.arg = arg;
-                self.arg_str = self.arg.to_string()
-            }
-            Message::ExprChange(f) => self.expr = f,
+            Message::ArgChange(arg) => self.ecalc.arg = arg,
+            Message::ExprChange(f) => self.ecalc.expr = f,
         }
-        self.set_values();
         Command::none()
     }
 
     fn view(&self) -> Element<Message> {
-        let slider_arg = Slider::new(-30.0..=30.0, self.arg, Message::ArgChange).step(0.2);
-        let arg_out = Text::new(format!("x = {}", &*self.arg_str.as_str()))
+        let slider_arg = Slider::new(-30.0..=30.0, self.ecalc.arg, Message::ArgChange).step(0.2);
+        let arg_out = Text::new(format!("x = {}", &self.ecalc.arg.to_string()))
             .width(FillPortion(1))
             .horizontal_alignment(Horizontal::Center);
-        let result_out = Text::new(&self.res_str).horizontal_alignment(Horizontal::Center);
-        let expr_in =
-            TextInput::new("Enter function", &self.expr, Message::ExprChange).width(FillPortion(5));
-        let gr_canvas = Canvas::new(self.create_graph())
+        let result_out = Text::new(self.ecalc.get_value()).horizontal_alignment(Horizontal::Center);
+        let expr_in = TextInput::new("Enter function", &self.ecalc.expr, Message::ExprChange)
+            .width(FillPortion(5));
+        let gr_canvas = Canvas::new(self.ecalc.create_graph())
             .width(Length::Fill)
             .height(Length::Fill);
         Container::new(
@@ -84,72 +75,5 @@ impl Application for FuncHandler {
         .center_x()
         .center_y()
         .into()
-    }
-}
-
-impl FuncHandler {
-    fn create_graph(&self) -> Graph {
-        let scale = 30.0;
-        let precision = 0.15;
-
-        let mut gr = Graph::new(
-            Vec::new(),
-            scale,
-            Point::new(self.arg as f32, self.res as f32),
-        );
-        let mut i = -50.0;
-        while i < 50.0 {
-            let function_val = FuncHandler::calculate(self.expr.clone(), i as f64);
-            if let Ok(res) = function_val {
-                gr.add_point(Point::new(i as f32, res as f32));
-            }
-            i += precision;
-        }
-        gr
-    }
-
-    fn set_values(&mut self) {
-        let current_value = FuncHandler::calculate(self.expr.clone(), self.arg);
-        match current_value {
-            Ok(res) => {
-                self.res = res;
-                self.res_str = format!("f(x) = {}", res.to_string())
-            }
-            Err(msg) => self.res_str = msg,
-        }
-    }
-
-    fn extract_float(n: Vec<Value>) -> f64 {
-        let return_float = match n.get(0) {
-            Some(value) => match value.as_f64() {
-                Some(f) => f,
-                None => 0.0,
-            },
-            None => 0.0,
-        };
-        return_float
-    }
-
-    fn calculate(expr: String, arg: f64) -> Result<f64, String> {
-        let processed_expr = Expr::new(expr)
-            .function("sin", |n| Ok(to_value(FuncHandler::extract_float(n).sin())))
-            .function("cos", |n| Ok(to_value(FuncHandler::extract_float(n).cos())))
-            .function("tan", |n| Ok(to_value(FuncHandler::extract_float(n).tan())))
-            .function("ctg", |n| {
-                Ok(to_value(1.0 / FuncHandler::extract_float(n).tan()))
-            })
-            .function("sqrt", |n| {
-                Ok(to_value(FuncHandler::extract_float(n).powf(0.5)))
-            })
-            .function("abs", |n| Ok(to_value(FuncHandler::extract_float(n).abs())))
-            .value("x", arg);
-        let expr_result = processed_expr.exec();
-        match expr_result {
-            Ok(res) => match res.as_f64() {
-                Some(f) => Ok(f),
-                None => Err(String::from("Incomplete function")),
-            },
-            Err(_) => Err(String::from("Computation error (check syntax)")),
-        }
     }
 }

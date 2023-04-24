@@ -43,11 +43,11 @@ fn trigonometry() {
     assert!(fc.res.parse::<f64>().unwrap() + 1.0 < 0.1);
 }
 
-//#[test]
-//fn trigonometry_2() {
-//    let mut fc = FuncHandler::new();
-//    fc.expr = String::from("cos(x) * cos(x) + sin(x) * sin(x)");
-//    fc.arg = 2.44;
-//    fc.calculate();
-//    assert!(fc.res.parse::<f64>().unwrap() - 1.0 < 0.1);
-//}
+#[test]
+fn trigonometry_2() {
+    let mut fc = FuncHandler::new();
+    fc.expr = String::from("cos(x) * cos(x) + sin(x) * sin(x)");
+    fc.arg = 2.44;
+    fc.calculate();
+    assert!(fc.res.parse::<f64>().unwrap() - 1.0 < 0.1);
+}
