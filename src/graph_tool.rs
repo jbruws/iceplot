@@ -141,5 +141,4 @@ impl GraphHandler {
     pub fn add_point(&mut self, p: Point) {
         self.points.push(p);
     }
-
 }

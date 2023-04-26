@@ -1,7 +1,7 @@
 use iced::Point;
 
 use crate::graph_tool::GraphHandler;
-use eval::{to_value, Expr, Value};
+use evalexpr::*;
 
 pub struct ExprCalculator {
     pub expr: String,
@@ -18,19 +18,19 @@ impl ExprCalculator {
 
     pub fn create_graph(&self) -> GraphHandler {
         const SCALE: f32 = 30.0;
-        const PRECISION: f32 = 0.15;
+        const PRECISION: f32 = 0.05; // still breaks at 1/x lmao 
 
         let mut initial_point = Point::new(0.0, 0.0);
         if let Ok(current_y) = ExprCalculator::calculate(&self.arg, &self.expr) {
-            initial_point = Point::new(self.arg, current_y);
+            initial_point = Point::new(self.arg as f32, current_y as f32);
         }
 
         let mut gr = GraphHandler::new(Vec::new(), SCALE, initial_point);
-        let mut i = -50.0;
-        while i < 50.0 {
+        let mut i = -30.0;
+        while i < 30.0 {
             let function_val = ExprCalculator::calculate(&i, &self.expr);
             if let Ok(res) = function_val {
-                gr.add_point(Point::new(i, res));
+                gr.add_point(Point::new(i as f32, res as f32));
             }
             i += PRECISION;
         }
@@ -41,50 +41,47 @@ impl ExprCalculator {
         let current_value = ExprCalculator::calculate(&self.arg, &self.expr);
         match current_value {
             Ok(res) => return res.to_string(),
-            Err(msg) => return msg,
+            Err(msg) => return msg.to_string(),
         }
     }
 
-    pub fn extract_float(n: Vec<Value>) -> f32 {
-        let return_float = match n.get(0) {
-            Some(value) => match value.as_f64() {
-                Some(f) => f as f32,
-                None => 0.0,
-            },
-            None => 0.0,
+    pub fn calculate(argm: &f32, expr: &String) -> Result<f64, EvalexprError> {
+        let arg = *argm as f64;
+        let ctx = context_map! {
+            "sin" => Function::new(|n| {
+                Ok(Value::Float(n.as_number()?.sin()))
+            }),
+            "cos" => Function::new(|n| {
+                Ok(Value::Float(n.as_number()?.sin()))
+            }),
+            "tg" => Function::new(|n| {
+                Ok(Value::Float(n.as_number()?.tan()))
+            }),
+            "ctg" => Function::new(|n| {
+                Ok(Value::Float(1.0 / n.as_number()?.tan()))
+            }),
+            "sqrt" => Function::new(|n| {
+                Ok(Value::Float(n.as_number()?.sqrt()))
+            }),
+            "abs" => Function::new(|n| {
+                Ok(Value::Float(n.as_number()?.abs()))
+            }),
+            "x" => arg,
         };
-        return_float
-    }
-
-    pub fn calculate(arg: &f32, expr: &String) -> Result<f32, String> {
-        let processed_expr = Expr::new(expr)
-            .function("sin", |n| {
-                Ok(to_value(ExprCalculator::extract_float(n).sin()))
-            })
-            .function("cos", |n| {
-                Ok(to_value(ExprCalculator::extract_float(n).cos()))
-            })
-            .function("tan", |n| {
-                Ok(to_value(ExprCalculator::extract_float(n).tan()))
-            })
-            .function("ctg", |n| {
-                Ok(to_value(1.0 / ExprCalculator::extract_float(n).tan()))
-            })
-            .function("sqrt", |n| {
-                Ok(to_value(ExprCalculator::extract_float(n).powf(0.5)))
-            })
-            .function("abs", |n| {
-                Ok(to_value(ExprCalculator::extract_float(n).abs()))
-            })
-            .value("x", arg);
-        let expr_result = processed_expr.exec();
-        match expr_result {
-            Ok(res) => match res.as_f64() {
-                Some(f) => Ok(f as f32),
-                // make actual error msgs later
-                None => Err(String::from("Incomplete function")),
+        let res = match ctx {
+            Ok(valid_ctx) => match eval_number_with_context(expr.as_str(), &valid_ctx) {
+                Err(_) => Err(EvalexprError::CustomMessage(String::from(
+                    "Computation error",
+                ))),
+                Ok(value) if !value.is_nan() => Ok(value),
+                _ => Err(EvalexprError::CustomMessage(String::from(
+                    "Undefined value",
+                ))),
             },
-            Err(_) => Err(String::from("Computation error (check syntax)")),
-        }
+            Err(_) => Err(EvalexprError::CustomMessage(String::from(
+                "Computation error",
+            ))),
+        };
+        res
     }
 }
