@@ -67,6 +67,7 @@ impl Application for FuncHandler {
         let gr_canvas = Canvas::new(self.ecalc.create_graph())
             .width(Length::Fill)
             .height(Length::Fill);
+
         Container::new(
             column![result_out, slider_arg, row![expr_in, arg_out], gr_canvas]
                 .padding(10)

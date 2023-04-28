@@ -3,7 +3,6 @@ use iced::widget::canvas::{
 };
 use iced::{Color, Point, Rectangle, Theme};
 
-// shamelessly stolen from iced-rs api reference lol
 #[derive(Debug)]
 pub struct GraphHandler {
     points: Vec<Point>,
@@ -22,31 +21,6 @@ impl<Message> Program<Message> for GraphHandler {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(bounds.size());
-
-        for i in 1..self.points.len() {
-            let prev_point = *self.points.get(i - 1).unwrap();
-            let current_point = *self.points.get(i).unwrap();
-            let current_path = Path::line(
-                Point::new(
-                    frame.center().x + self.scale * prev_point.x,
-                    frame.center().y - self.scale * prev_point.y,
-                ),
-                Point::new(
-                    frame.center().x + self.scale * current_point.x,
-                    frame.center().y - self.scale * current_point.y,
-                ),
-            );
-            frame.stroke(
-                &current_path,
-                Stroke {
-                    style: Style::Solid(Color::BLACK),
-                    width: 3.0,
-                    line_cap: LineCap::Round,
-                    line_join: LineJoin::Bevel,
-                    line_dash: LineDash::default(),
-                },
-            );
-        }
         frame.fill(
             &Path::circle(
                 Point::new(
@@ -62,15 +36,17 @@ impl<Message> Program<Message> for GraphHandler {
                 a: 0.75,
             },
         );
-
+        
         vec![
-            GraphHandler::create_background(self.scale, bounds),
+            self.create_background(bounds),
+            self.create_geometry(bounds),
             frame.into_geometry(),
         ]
     }
 }
+
 impl GraphHandler {
-    fn create_background(scale: f32, bounds: Rectangle) -> Geometry {
+    fn create_background(&self, bounds: Rectangle) -> Geometry {
         let mut frame = Frame::new(bounds.size());
 
         let points = [
@@ -109,22 +85,51 @@ impl GraphHandler {
         frame.stroke(&Path::line(points[0], points[2]), stroke_axis.clone());
         frame.stroke(&Path::line(points[1], points[3]), stroke_axis.clone());
 
-        let grid_width = (frame.width() as f32 / scale) as i32;
+        let grid_width = (frame.width() as f32 / self.scale) as i32;
 
         for i in (-1) * grid_width..=grid_width {
             frame.stroke(
                 &Path::line(
-                    Point::new(0.0, frame.center().y + i as f32 * scale),
-                    Point::new(frame.width(), frame.center().y + i as f32 * scale),
+                    Point::new(0.0, frame.center().y + i as f32 * self.scale),
+                    Point::new(frame.width(), frame.center().y + i as f32 * self.scale),
                 ),
                 stroke_grid.clone(),
             );
             frame.stroke(
                 &Path::line(
-                    Point::new(frame.center().x + i as f32 * scale, 0.0),
-                    Point::new(frame.center().x + i as f32 * scale, frame.height()),
+                    Point::new(frame.center().x + i as f32 * self.scale, 0.0),
+                    Point::new(frame.center().x + i as f32 * self.scale, frame.height()),
                 ),
                 stroke_grid.clone(),
+            );
+        }
+        frame.into_geometry()
+    }
+    fn create_geometry(&self, bounds: Rectangle) -> Geometry {
+        let mut frame = Frame::new(bounds.size());
+
+        for i in 1..self.points.len() {
+            let prev_point = *self.points.get(i - 1).unwrap();
+            let current_point = *self.points.get(i).unwrap();
+            let current_path = Path::line(
+                Point::new(
+                    frame.center().x + self.scale * prev_point.x,
+                    frame.center().y - self.scale * prev_point.y,
+                ),
+                Point::new(
+                    frame.center().x + self.scale * current_point.x,
+                    frame.center().y - self.scale * current_point.y,
+                ),
+            );
+            frame.stroke(
+                &current_path,
+                Stroke {
+                    style: Style::Solid(Color::BLACK),
+                    width: 3.0,
+                    line_cap: LineCap::Round,
+                    line_join: LineJoin::Bevel,
+                    line_dash: LineDash::default(),
+                },
             );
         }
         frame.into_geometry()

@@ -18,7 +18,7 @@ impl ExprCalculator {
 
     pub fn create_graph(&self) -> GraphHandler {
         const SCALE: f32 = 30.0;
-        const PRECISION: f32 = 0.05; // still breaks at 1/x lmao 
+        const PRECISION: f32 = 0.05; // still breaks at 1/x lmao
 
         let mut initial_point = Point::new(0.0, 0.0);
         if let Ok(current_y) = ExprCalculator::calculate(&self.arg, &self.expr) {
@@ -68,6 +68,7 @@ impl ExprCalculator {
             }),
             "x" => arg,
         };
+
         let res = match ctx {
             Ok(valid_ctx) => match eval_number_with_context(expr.as_str(), &valid_ctx) {
                 Err(_) => Err(EvalexprError::CustomMessage(String::from(
