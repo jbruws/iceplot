@@ -67,6 +67,8 @@ impl ExprCalculator {
                 Ok(Value::Float(n.as_number()?.abs()))
             }),
             "x" => arg,
+            "pi" => std::f64::consts::PI,
+            "e" => std::f64::consts::E,
         };
 
         let res = match ctx {
