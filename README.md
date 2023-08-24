@@ -1,3 +1,3 @@
 # iceplot
 
-this thing draws graphs. Incorrectly.
+this thing plots graphs, incorrectly

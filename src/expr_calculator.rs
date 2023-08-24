@@ -2,6 +2,9 @@ use iced::Point;
 
 use crate::graph_tool::GraphHandler;
 use evalexpr::*;
+use num_cpus;
+use std::sync::mpsc;
+use std::thread;
 
 pub struct ExprCalculator {
     pub expr: String,
@@ -17,22 +20,48 @@ impl ExprCalculator {
     }
 
     pub fn create_graph(&self) -> GraphHandler {
+        const PRECISION: f32 = 0.05;
         const SCALE: f32 = 30.0;
-        const PRECISION: f32 = 0.05; // still breaks at 1/x lmao
 
         let mut initial_point = Point::new(0.0, 0.0);
         if let Ok(current_y) = ExprCalculator::calculate(&self.arg, &self.expr) {
             initial_point = Point::new(self.arg as f32, current_y as f32);
         }
 
+        let (tx, rx) = mpsc::channel();
+        let cpu_count = num_cpus::get();
+        let arg_range_step = 60.0 / cpu_count as f32;
+
+        for i in 0..cpu_count {
+            let mut current_lower = -30.0 + arg_range_step * i as f32;
+            let current_upper = -15.0 + arg_range_step * i as f32;
+            let expr_clone = self.expr.clone();
+            let tx_clone = tx.clone();
+            thread::spawn(move || {
+                let mut result_vec = Vec::new();
+                while current_lower < current_upper {
+                    let function_val = ExprCalculator::calculate(&current_lower, &expr_clone);
+                    if let Ok(res) = function_val {
+                        result_vec.push(Point::new(current_lower as f32, res as f32));
+                    }
+                    current_lower += &PRECISION;
+                }
+                tx_clone.send((i as i32, result_vec)).unwrap();
+            });
+        }
+
+        drop(tx);
+        let mut combined_segments = Vec::new();
+
+        for received_segments in rx {
+            combined_segments.push(received_segments);
+        }
+
+        combined_segments.sort_by_key(|i| i.0);
+
         let mut gr = GraphHandler::new(Vec::new(), SCALE, initial_point);
-        let mut i = -30.0;
-        while i < 30.0 {
-            let function_val = ExprCalculator::calculate(&i, &self.expr);
-            if let Ok(res) = function_val {
-                gr.add_point(Point::new(i as f32, res as f32));
-            }
-            i += PRECISION;
+        for t in combined_segments {
+            gr.add_points(&t.1);
         }
         gr
     }

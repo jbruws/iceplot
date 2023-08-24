@@ -36,7 +36,7 @@ impl<Message> Program<Message> for GraphHandler {
                 a: 0.75,
             },
         );
-        
+
         vec![
             self.create_background(bounds),
             self.create_geometry(bounds),
@@ -143,7 +143,7 @@ impl GraphHandler {
         }
     }
 
-    pub fn add_point(&mut self, p: Point) {
-        self.points.push(p);
+    pub fn add_points(&mut self, p: &Vec<Point>) {
+        self.points.extend(p);
     }
 }

@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 iced = {version = "0.8.0", default-features = false, features = ["glow", "canvas"]}
 evalexpr = "9.0.0"
+num_cpus = "1.0"
