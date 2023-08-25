@@ -21,6 +21,8 @@ impl<Message> Program<Message> for GraphHandler {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let mut frame = Frame::new(bounds.size());
+
+        // current value indicator
         frame.fill(
             &Path::circle(
                 Point::new(
@@ -105,12 +107,16 @@ impl GraphHandler {
         }
         frame.into_geometry()
     }
+
     fn create_geometry(&self, bounds: Rectangle) -> Geometry {
         let mut frame = Frame::new(bounds.size());
 
         for i in 1..self.points.len() {
             let prev_point = *self.points.get(i - 1).unwrap();
             let current_point = *self.points.get(i).unwrap();
+            if !current_point.y.is_finite() || !prev_point.y.is_finite() {
+                continue;
+            }
             let current_path = Path::line(
                 Point::new(
                     frame.center().x + self.scale * prev_point.x,
@@ -125,7 +131,7 @@ impl GraphHandler {
                 &current_path,
                 Stroke {
                     style: Style::Solid(Color::BLACK),
-                    width: 3.0,
+                    width: 2.0,
                     line_cap: LineCap::Round,
                     line_join: LineJoin::Bevel,
                     line_dash: LineDash::default(),

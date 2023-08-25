@@ -9,6 +9,7 @@ use std::thread;
 pub struct ExprCalculator {
     pub expr: String,
     pub arg: f32,
+    pub graph_scale: f32,
 }
 
 impl ExprCalculator {
@@ -16,35 +17,42 @@ impl ExprCalculator {
         ExprCalculator {
             expr: String::new(),
             arg: 0.0,
+            graph_scale: 30.0,
         }
     }
 
     pub fn create_graph(&self) -> GraphHandler {
-        const PRECISION: f32 = 0.05;
-        const SCALE: f32 = 30.0;
+        const PRECISION: f32 = 0.05; // larger = rougher graph
 
         let mut initial_point = Point::new(0.0, 0.0);
         if let Ok(current_y) = ExprCalculator::calculate(&self.arg, &self.expr) {
-            initial_point = Point::new(self.arg as f32, current_y as f32);
+            if current_y.is_finite() {
+                initial_point = Point::new(self.arg as f32, current_y as f32);
+            }
         }
 
         let (tx, rx) = mpsc::channel();
         let cpu_count = num_cpus::get();
-        let arg_range_step = 60.0 / cpu_count as f32;
+        let graph_width = (60.0 - self.graph_scale) * 3.0; // 50 (max scale) + 10 (min scale)
+        let thread_range_size = graph_width / cpu_count as f32;
 
         for i in 0..cpu_count {
-            let mut current_lower = -30.0 + arg_range_step * i as f32;
-            let current_upper = -15.0 + arg_range_step * i as f32;
+            // bounds of argument range for a particular thread
+            // `lower_bound` serves as an argument and is incremented each loop pass
+            let mut lower_bound = -0.5 * graph_width + thread_range_size * i as f32;
+            let upper_bound = lower_bound + thread_range_size as f32;
+
             let expr_clone = self.expr.clone();
             let tx_clone = tx.clone();
+
             thread::spawn(move || {
                 let mut result_vec = Vec::new();
-                while current_lower < current_upper {
-                    let function_val = ExprCalculator::calculate(&current_lower, &expr_clone);
+                while lower_bound < upper_bound {
+                    let function_val = ExprCalculator::calculate(&lower_bound, &expr_clone);
                     if let Ok(res) = function_val {
-                        result_vec.push(Point::new(current_lower as f32, res as f32));
+                        result_vec.push(Point::new(lower_bound as f32, res as f32));
                     }
-                    current_lower += &PRECISION;
+                    lower_bound += &PRECISION;
                 }
                 tx_clone.send((i as i32, result_vec)).unwrap();
             });
@@ -52,14 +60,13 @@ impl ExprCalculator {
 
         drop(tx);
         let mut combined_segments = Vec::new();
-
         for received_segments in rx {
             combined_segments.push(received_segments);
         }
 
-        combined_segments.sort_by_key(|i| i.0);
+        combined_segments.sort_by_key(|i| i.0); // sorting by X coordinate to get a continous graph
 
-        let mut gr = GraphHandler::new(Vec::new(), SCALE, initial_point);
+        let mut gr = GraphHandler::new(Vec::new(), self.graph_scale, initial_point);
         for t in combined_segments {
             gr.add_points(&t.1);
         }
@@ -89,6 +96,12 @@ impl ExprCalculator {
             "ctg" => Function::new(|n| {
                 Ok(Value::Float(1.0 / n.as_number()?.tan()))
             }),
+            "tan" => Function::new(|n| {
+                Ok(Value::Float(n.as_number()?.tan()))
+            }),
+            "cot" => Function::new(|n| {
+                Ok(Value::Float(1.0 / n.as_number()?.tan()))
+            }),
             "sqrt" => Function::new(|n| {
                 Ok(Value::Float(n.as_number()?.sqrt()))
             }),
@@ -101,6 +114,7 @@ impl ExprCalculator {
         };
 
         let res = match ctx {
+            // this whole block is kinda awful
             Ok(valid_ctx) => match eval_number_with_context(expr.as_str(), &valid_ctx) {
                 Err(_) => Err(EvalexprError::CustomMessage(String::from(
                     "Computation error",
