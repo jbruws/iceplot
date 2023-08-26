@@ -110,13 +110,32 @@ impl GraphHandler {
 
     fn create_geometry(&self, bounds: Rectangle) -> Geometry {
         let mut frame = Frame::new(bounds.size());
+        let mut towards_x_axis = false;
 
         for i in 1..self.points.len() {
             let prev_point = *self.points.get(i - 1).unwrap();
             let current_point = *self.points.get(i).unwrap();
+
+            // filtering out infinite numbers
             if !current_point.y.is_finite() || !prev_point.y.is_finite() {
                 continue;
             }
+            // breaks in the graph
+            // if the signs are different and the graph doesn't cross x axis
+            // it can only mean one thing
+            if current_point.y * prev_point.y < 0.0 && !towards_x_axis {
+                continue;
+            }
+
+            // graph direction
+            if (current_point.y < prev_point.y && prev_point.y > 0.0)
+                || (current_point.y > prev_point.y && prev_point.y < 0.0)
+            {
+                towards_x_axis = true;
+            } else {
+                towards_x_axis = false;
+            }
+
             let current_path = Path::line(
                 Point::new(
                     frame.center().x + self.scale * prev_point.x,
