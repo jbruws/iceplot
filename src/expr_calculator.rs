@@ -64,7 +64,7 @@ impl ExprCalculator {
             combined_segments.push(received_segments);
         }
 
-        combined_segments.sort_by_key(|i| i.0); // sorting by X coordinate to get a continous graph
+        combined_segments.sort_by_key(|i| i.0); // sorting by thread number for a smooth graph
 
         let mut gr = GraphHandler::new(Vec::new(), self.graph_scale, initial_point);
         for t in combined_segments {
@@ -88,7 +88,7 @@ impl ExprCalculator {
                 Ok(Value::Float(n.as_number()?.sin()))
             }),
             "cos" => Function::new(|n| {
-                Ok(Value::Float(n.as_number()?.sin()))
+                Ok(Value::Float(n.as_number()?.cos())) // damn
             }),
             "tg" => Function::new(|n| {
                 Ok(Value::Float(n.as_number()?.tan()))

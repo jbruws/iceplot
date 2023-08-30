@@ -116,7 +116,7 @@ impl GraphHandler {
             let prev_point = *self.points.get(i - 1).unwrap();
             let current_point = *self.points.get(i).unwrap();
 
-            // filtering out infinite numbers
+            // filtering out infinite numbers (doesn't work on exponents though...)
             if !current_point.y.is_finite() || !prev_point.y.is_finite() {
                 continue;
             }
